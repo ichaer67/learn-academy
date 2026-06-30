@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACL Esports Academy 🚀</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom RGB Gamer Vibes & Animations */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, transparent 70%);
+            color: #f9fafb;
+            overflow-x: hidden;
+        }
+        
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* RGB Border Glow */
+        .glow-border {
+            position: relative;
+        }
+        .glow-border::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899, #3b82f6);
+            z-index: -1;
+            filter: blur(8px);
+            background-size: 200% 200%;
+            animation: rgbBg 4s linear infinite;
+            opacity: 0.7;
+        }
+
+        @keyframes rgbBg {
+            0% { background-position: 0% 0%; }
+            50% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        /* 3D Flip Card */
+        .perspective { perspective: 1000px; }
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .is-flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            text-align: center;
+            border: 1px solid #1f2937;
+        }
+        .flip-card-front { background: linear-gradient(145deg, #111827, #1f2937); }
+        .flip-card-back {
+            background: linear-gradient(145deg, #312e81, #4c1d95);
+            transform: rotateY(180deg);
+            border-color: #6d28d9;
+        }
+
+        /* Screen Transitions */
+        .screen {
+            display: none;
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        .screen.active { display: flex; flex-direction: column; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Timer Bar */
+        .timer-bar { transition: width 0.1s linear; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-4 sm:p-8 selection:bg-fuchsia-500 selection:text-white">
+
+    <!-- Top Navigation -->
+    <nav class="w-full max-w-4xl flex justify-between items-center mb-8 z-10 relative">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="window.switchScreen('menu')">
+            <div class="w-8 h-8 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg">
+                NW
+            </div>
+            <span class="font-bold text-xl tracking-tight hidden sm:block">ACL <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">Academy</span></span>
+        </div>
+        <div class="flex gap-2 sm:gap-4 text-sm font-mono text-gray-400">
+            <div class="bg-gray-900 px-3 py-1 rounded-full border border-gray-800 flex items-center gap-2">
+                <span class="text-xs sm:text-sm">👦 <span id="nav-player">Guest</span></span>
+            </div>
+            <div class="bg-gray-900 px-3 py-1 rounded-full border border-gray-800 flex items-center gap-2">
+                <span class="text-xs sm:text-sm">ELO:</span>
+                <span id="nav-elo" class="text-fuchsia-400 font-bold text-xs sm:text-sm">1200</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- SCREEN: LOADING / INIT -->
+    <div id="screen-loading" class="screen active w-full max-w-md items-center justify-center flex-1 text-center">
+        <div class="w-16 h-16 border-4 border-fuchsia-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <h2 class="text-2xl font-bold">Booting Cloud Servers...</h2>
+        <p class="text-gray-400 text-sm">Verbinde mit Firebase 🚀</p>
+    </div>
+
+    <!-- SCREEN: AUTH (Create Account) -->
+    <div id="screen-auth" class="screen w-full max-w-md items-center justify-center flex-1 text-center">
+        <h1 class="text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+            Create Player Profile
+        </h1>
+        <p class="text-gray-400 mb-8">Wähle deinen Gamer Tag, Bro. Dein Progress wird in der Cloud gespeichert.</p>
+        
+        <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl w-full shadow-2xl">
+            <input type="text" id="gamertag-input" maxlength="12" placeholder="xX_Pro_Xx" class="w-full bg-gray-950 border border-gray-700 rounded-xl p-4 text-white text-center text-xl font-bold mb-4 focus:outline-none focus:border-cyan-500 transition-colors">
+            <button onclick="window.createAccount()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 py-3 rounded-xl font-bold text-white transition-colors shadow-lg shadow-purple-500/30 text-lg">
+                Join Academy
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN: MAIN MENU -->
+    <div id="screen-menu" class="screen w-full max-w-4xl items-center flex-1 justify-center">
+        <h1 class="text-4xl sm:text-6xl font-extrabold mb-4 text-center">
+            Ready to <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">Grind?</span>
+        </h1>
+        <p class="text-gray-400 mb-12 text-center max-w-md">Wähle deinen Mode, Bro. Vom chilligen Lernen bis zum absoluten Sweat-Mode mit Timer.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl">
+            <!-- Grind Mode -->
+            <button onclick="window.switchScreen('flashcards')" class="group relative bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-cyan-500 transition-all text-left overflow-hidden">
+                <div class="absolute inset-0 bg-cyan-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">🧠 Grind Mode</h2>
+                <p class="text-gray-400 text-sm">Chillige Flashcards. Lerne die Basics ohne Stress.</p>
+            </button>
+
+            <!-- Sweat Mode -->
+            <button onclick="window.startTestMode()" class="group relative bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-fuchsia-500 transition-all text-left overflow-hidden">
+                <div class="absolute inset-0 bg-fuchsia-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">💦 Sweat Mode</h2>
+                <p class="text-gray-400 text-sm">Multiple Choice Test. Check dein Wissen mit Erklärungen.</p>
+            </button>
+
+            <!-- Ranked Mode -->
+            <button onclick="window.startRankedMode()" class="glow-border bg-gray-900 p-6 rounded-2xl text-left md:col-span-2 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="relative z-10 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">🏆 Ranked (Time Attack)</h2>
+                        <p class="text-gray-300 text-sm">Beweis es! 10 Sek pro Frage. Push deine Elo für das Leaderboard.</p>
+                    </div>
+                    <span class="bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full animate-pulse">HOT</span>
+                </div>
+            </button>
+
+            <!-- Leaderboard -->
+            <button onclick="window.switchScreen('lobby')" class="bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-green-500 transition-all text-left md:col-span-2">
+                <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">🌍 Global Leaderboard</h2>
+                <p class="text-gray-400 text-sm">Miss dich mit deinen Bros. Wer hat die höchste Elo?</p>
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN: FLASHCARDS -->
+    <div id="screen-flashcards" class="screen w-full max-w-md items-center justify-center flex-1">
+        <div class="w-full flex justify-between items-center mb-6">
+            <button onclick="window.switchScreen('menu')" class="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold">← Back</button>
+            <span class="text-cyan-400 font-mono text-sm tracking-widest" id="fc-progress">1/10</span>
+        </div>
+
+        <div class="perspective w-full h-80 sm:h-96 cursor-pointer mb-8" id="flashcard" onclick="window.flipCard()">
+            <div class="flip-card-inner">
+                <div class="flip-card-front shadow-2xl">
+                    <span class="absolute top-4 left-4 text-xs font-bold text-gray-500 uppercase">Frage</span>
+                    <h2 id="fc-q" class="text-xl sm:text-2xl font-bold text-white">Lade Frage...</h2>
+                </div>
+                <div class="flip-card-back shadow-2xl">
+                    <span class="absolute top-4 left-4 text-xs font-bold text-indigo-300 uppercase">Antwort</span>
+                    <p id="fc-a" class="text-lg sm:text-xl font-medium text-white">Lade Antwort...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between w-full gap-4">
+            <button onclick="window.prevFC()" class="flex-1 bg-gray-800 hover:bg-gray-700 py-3 rounded-xl font-bold transition-colors">Zurück</button>
+            <button onclick="window.nextFC()" class="flex-1 bg-cyan-600 hover:bg-cyan-500 py-3 rounded-xl font-bold transition-colors text-white shadow-[0_0_15px_rgba(8,145,178,0.4)]">Weiter</button>
+        </div>
+    </div>
+
+    <!-- SCREEN: QUIZ / RANKED -->
+    <div id="screen-quiz" class="screen w-full max-w-2xl items-center flex-1">
+        <div class="w-full flex justify-between items-center mb-4">
+            <button onclick="window.switchScreen('menu')" class="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold">← Quit</button>
+            <div id="quiz-stats" class="flex gap-4 font-mono text-sm">
+                <span class="text-gray-400">Q: <span id="quiz-progress" class="text-white">1/10</span></span>
+                <span class="text-fuchsia-400 hidden" id="quiz-streak">🔥 Streak: <span id="streak-count">0</span></span>
+                <span class="text-yellow-400 font-bold" id="quiz-score-display">Score: 0</span>
+            </div>
+        </div>
+
+        <div id="timer-container" class="w-full bg-gray-900 h-2 rounded-full mb-8 hidden overflow-hidden">
+            <div id="timer-bar" class="h-full bg-gradient-to-r from-green-400 to-red-500 w-full timer-bar"></div>
+        </div>
+
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 md:p-8 w-full shadow-2xl relative">
+            <h2 id="quiz-q" class="text-xl md:text-2xl font-bold mb-8">Lade Frage...</h2>
+            <div id="quiz-options" class="grid grid-cols-1 gap-3 mb-6"></div>
+            <div id="quiz-feedback" class="hidden p-4 rounded-xl mb-4 text-sm font-medium border"></div>
+            <button id="quiz-next-btn" onclick="window.nextQuizQuestion()" class="hidden w-full bg-white text-black hover:bg-gray-200 py-3 rounded-xl font-bold transition-colors">
+                Nächste Frage →
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN: LEADERBOARD -->
+    <div id="screen-lobby" class="screen w-full max-w-md items-center justify-center flex-1 text-center">
+        <button onclick="window.switchScreen('menu')" class="absolute top-8 left-8 text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold">← Back</button>
+        
+        <h2 class="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Global Ranking</h2>
+        <p class="text-gray-400 mb-6">Live Cloud Sync aktiv 🟢</p>
+        
+        <div class="bg-gray-900 border border-gray-700 rounded-xl w-full mb-6 overflow-hidden max-h-80 overflow-y-auto" id="leaderboard-container">
+            <!-- Leaderboard Items injected via JS -->
+            <div class="p-4 text-gray-500 text-sm">Lade Live-Daten...</div>
+        </div>
+    </div>
+
+    <!-- SCREEN: END SCREEN -->
+    <div id="screen-end" class="screen w-full max-w-md items-center justify-center flex-1 text-center">
+        <div id="end-emoji" class="text-6xl mb-4">🏆</div>
+        <h2 class="text-4xl font-extrabold mb-2" id="end-title">GG WP!</h2>
+        <p class="text-gray-400 mb-8" id="end-subtitle">Score in die Cloud gepusht.</p>
+        
+        <div class="bg-gray-900 rounded-2xl p-6 w-full mb-8 border border-gray-800 flex justify-around">
+            <div>
+                <p class="text-xs text-gray-500 uppercase font-bold">Score</p>
+                <p class="text-3xl font-mono font-bold text-yellow-400" id="end-score">0</p>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 uppercase font-bold">Neu Elo</p>
+                <p class="text-3xl font-mono font-bold text-fuchsia-400" id="end-elo">1200</p>
+            </div>
+        </div>
+        
+        <button onclick="window.switchScreen('menu')" class="w-full bg-white text-black hover:bg-gray-200 py-4 rounded-xl font-bold transition-colors text-lg">
+            Zurück zur Base
+        </button>
+    </div>
+
+    <!-- SCRIPT (Type Module for Firebase + Game Logic) -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- FIREBASE SETUP ---
+        // Env variables provided by the Canvas Environment
+        let firebaseConfig = {};
+        if (typeof __firebase_config !== 'undefined') {
+            try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) { console.error("Firebase config parse error", e); }
+        }
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'acl-academy-1337';
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        let currentUser = null;
+        let gamerTag = "";
+        let playerElo = 1200;
+
+        // Initialize Authentication (CRITICAL RULE 3)
+        async function initAuth() {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+                // Fallback for local testing without valid config
+                setTimeout(() => window.switchScreen('menu'), 1000);
+            }
+        }
+
+        // Listen to Auth State
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                await loadUserProfile();
+                listenToLeaderboard();
+            }
+        });
+
+        // Load Private Profile (CRITICAL RULE 1)
+        async function loadUserProfile() {
+            if (!currentUser) return;
+            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+            try {
+                const docSnap = await getDoc(profileRef);
+                if (docSnap.exists()) {
+                    gamerTag = docSnap.data().gamerTag || "Bro";
+                    playerElo = docSnap.data().elo || 1200;
+                    
+                    // Update UI
+                    document.getElementById('nav-player').innerText = gamerTag;
+                    document.getElementById('nav-elo').innerText = playerElo;
+                    window.switchScreen('menu');
+                } else {
+                    // No profile yet -> Go to Auth Screen
+                    window.switchScreen('auth');
+                }
+            } catch (e) {
+                console.error("Firestore Read Error:", e);
+                window.switchScreen('auth');
+            }
+        }
+
+        // Create Account / Save Profile Function
+        window.createAccount = async () => {
+            const input = document.getElementById('gamertag-input').value.trim();
+            if (!input) { alert("Gib einen Tag ein, Bro!"); return; }
+            if (!currentUser) { alert("Warte auf Cloud Connection..."); return; }
+
+            gamerTag = input;
+            document.getElementById('nav-player').innerText = gamerTag;
+            
+            // Save to Private Space
+            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+            await setDoc(profileRef, { gamerTag: gamerTag, elo: playerElo }, { merge: true });
+            
+            // Save to Public Leaderboard Space (CRITICAL RULE 1)
+            const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
+            await setDoc(publicRef, { gamerTag: gamerTag, elo: playerElo }, { merge: true });
+
+            window.switchScreen('menu');
+        };
+
+        // Sync Elo to Cloud
+        async function updateEloInCloud(newElo) {
+            if (!currentUser) return;
+            playerElo = newElo;
+            document.getElementById('nav-elo').innerText = playerElo;
+            
+            // Update Private
+            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
+            await setDoc(profileRef, { elo: playerElo }, { merge: true });
+            
+            // Update Public Leaderboard
+            const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
+            await setDoc(publicRef, { elo: playerElo }, { merge: true });
+        }
+
+        // Listen to Live Leaderboard (CRITICAL RULE 2: No complex queries, sort in JS)
+        function listenToLeaderboard() {
+            if (!currentUser) return;
+            const lbCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+            onSnapshot(lbCol, (snapshot) => {
+                let players = [];
+                snapshot.forEach(doc => players.push(doc.data()));
+                
+                // Sort descending in Memory
+                players.sort((a, b) => b.elo - a.elo); 
+                
+                renderLeaderboard(players);
+            }, (error) => {
+                console.error("Leaderboard Error:", error);
+            });
+        }
+
+        function renderLeaderboard(players) {
+            const container = document.getElementById('leaderboard-container');
+            container.innerHTML = '';
+            
+            if (players.length === 0) {
+                container.innerHTML = '<div class="p-4 text-gray-500 text-sm">Noch niemand in der Academy...</div>';
+                return;
+            }
+
+            players.forEach((p, index) => {
+                let medal = "";
+                if (index === 0) medal = "🥇";
+                else if (index === 1) medal = "🥈";
+                else if (index === 2) medal = "🥉";
+                else medal = `<span class="text-gray-500">#${index + 1}</span>`;
+
+                const highlight = p.gamerTag === gamerTag ? 'bg-gray-800' : 'border-b border-gray-800';
+                const elHtml = `
+                    <div class="flex justify-between items-center p-4 ${highlight}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 text-center font-bold text-lg">${medal}</div>
+                            <span class="font-bold ${p.gamerTag === gamerTag ? 'text-cyan-400' : 'text-white'}">${p.gamerTag}</span>
+                        </div>
+                        <span class="font-mono font-bold text-fuchsia-400">${p.elo} ELO</span>
+                    </div>
+                `;
+                container.innerHTML += elHtml;
+            });
+        }
+
+        // Start booting Auth Flow
+        initAuth();
+
+        // --- GAME DATA & LOGIC ---
+        const dbQuestions = [
+            {
+                q: "Was besagen die drei P's, die vor dem Schreiben einer ACL-Regel feststehen müssen?",
+                options: ["Pro Protokoll, pro Schnittstelle, pro Richtung", "Pro Paket, pro Priorität, pro Ping", "Pro PC, pro Port, pro Policy", "Pro Provider, pro Peer, pro Protokoll"],
+                correct: 0,
+                explanation: "Genau Bro! Du musst wissen: Was (Protokoll), Wo (Port/Interface) und Wohin (Richtung in/out)."
+            },
+            {
+                q: "Welche unsichtbare Regel greift immer am Ende jeder ACL?",
+                options: ["permit any", "deny host", "permit all", "deny any"],
+                correct: 3,
+                explanation: "Whitelist-Prinzip: Wenn du nicht auf der Gästeliste stehst, bleibst du draußen. 'deny any' killt alles restliche."
+            },
+            {
+                q: "Nach welchem Kriterium filtert eine Standard-ACL (Nummern 1-99) ausschließlich?",
+                options: ["Ziel-IP-Adresse", "Quell- und Ziel-IP-Adresse", "Quell-IPv4-Adresse", "Protokoll und Ports"],
+                correct: 2,
+                explanation: "Die Standard-ACL ist simpel, die fragt nur: 'Wer hat's abgeschickt?'. Sie liest nur die Source-IP."
+            },
+            {
+                q: "Wo sollte eine Extended-ACL im Netzwerk idealerweise platziert werden?",
+                options: ["So nahe am ZIEL wie möglich", "So nahe an der QUELLE wie möglich", "Am Internet-Router", "Auf dem Endgerät"],
+                correct: 1,
+                explanation: "Wenn du eh weißt, dass das Paket verboten ist, kill es direkt an der Quelle! Spart Bandbreite (Netzlast)."
+            },
+            {
+                q: "Wie lautet die korrekte Wildcard-Maske für die Subnetzmaske 255.255.255.0?",
+                options: ["0.0.0.0", "255.255.255.255", "0.0.255.255", "0.0.0.255"],
+                correct: 3,
+                explanation: "Einfach '255 - Subnetz' rechnen. 255-255=0. Nur das letzte Oktett wird zu 255."
+            },
+            {
+                q: "Was bedeutet eine '0' in einer Wildcard-Maske?",
+                options: ["Ignorieren", "Muss exakt übereinstimmen (prüfen)", "Host-Anteil", "Wird verworfen"],
+                correct: 1,
+                explanation: "Umgekehrt zur Subnetzmaske! Bei der Wildcard heißt 0 = 'Check das ganz genau', 1 = 'Ist mir komplett egal'."
+            },
+            {
+                q: "Welches Schlüsselwort in Cisco-IOS ersetzt die Wildcard-Maske 0.0.0.0?",
+                options: ["any", "all", "network", "host"],
+                correct: 3,
+                explanation: "0.0.0.0 heißt 'ALLE Bits müssen exakt passen'. Das geht also nur um genau EINEN Rechner = 'host'."
+            },
+            {
+                q: "Warum ist die Reihenfolge der Regeln (ACEs) innerhalb einer ACL extrem wichtig?",
+                options: ["Weil der Router von unten nach oben liest", "Weil allgemeine Regeln spezifische immer überschreiben", "Weil die erste passende Regel greift (Top-Down)", "Wegen der Sequenznummern"],
+                correct: 2,
+                explanation: "Top-Down! Der Router scannt von oben. Findet er einen Treffer, wendet er ihn an und schmeißt den Rest der Liste weg."
+            },
+            {
+                q: "Mit welchem Befehl bindest du eine ACL an eine VTY-Leitung (z.B. SSH)?",
+                options: ["ip access-group <nr> in", "access-class <nr> in", "ip access-list <nr>", "vty access-group in"],
+                correct: 1,
+                explanation: "Für physische Interfaces nutzt man 'access-group', aber für VTY (Remote Management) nutzt man 'access-class'."
+            },
+            {
+                q: "Was passiert mit den Ports beim Hin- und Rückweg einer TCP-Verbindung?",
+                options: ["Sie bleiben identisch", "Alle werden zu Port 80", "Quell- und Zielport vertauschen sich", "Router ignoriert Ports auf dem Rückweg"],
+                correct: 2,
+                explanation: "Port-Swapping! Wenn du Port 80 anfragst, ist der Webserver das Ziel. Auf dem Rückweg antwortet er, dann ist er die Quelle (Source Port 80)."
+            }
+        ];
+
+        let currentScreen = 'loading';
+        let fcIndex = 0;
+        let isRanked = false;
+        let quizIndex = 0;
+        let score = 0;
+        let streak = 0;
+        let answered = false;
+        let timerInterval;
+        let timeLeft = 10;
+        const TIME_LIMIT = 10;
+
+        window.switchScreen = (screenId) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${screenId}`).classList.add('active');
+            currentScreen = screenId;
+            clearInterval(timerInterval);
+            if (screenId === 'flashcards') updateFC();
+        };
+
+        // --- FLASHCARD LOGIC ---
+        function updateFC() {
+            const card = document.getElementById('flashcard');
+            if (card.classList.contains('is-flipped')) {
+                card.classList.remove('is-flipped');
+                setTimeout(() => setFCText(), 300);
+            } else { setFCText(); }
+            document.getElementById('fc-progress').innerText = `${fcIndex + 1}/${dbQuestions.length}`;
+        }
+        function setFCText() {
+            document.getElementById('fc-q').innerHTML = dbQuestions[fcIndex].q;
+            document.getElementById('fc-a').innerHTML = dbQuestions[fcIndex].explanation;
+        }
+        window.flipCard = () => document.getElementById('flashcard').classList.toggle('is-flipped');
+        window.nextFC = () => { fcIndex = (fcIndex + 1) % dbQuestions.length; updateFC(); };
+        window.prevFC = () => { fcIndex = (fcIndex - 1 + dbQuestions.length) % dbQuestions.length; updateFC(); };
+
+        // --- QUIZ & RANKED LOGIC ---
+        window.startTestMode = () => {
+            isRanked = false;
+            initQuiz();
+            document.getElementById('timer-container').classList.add('hidden');
+            document.getElementById('quiz-streak').classList.add('hidden');
+            window.switchScreen('quiz');
+        };
+
+        window.startRankedMode = () => {
+            isRanked = true;
+            initQuiz();
+            document.getElementById('timer-container').classList.remove('hidden');
+            document.getElementById('quiz-streak').classList.remove('hidden');
+            window.switchScreen('quiz');
+        };
+
+        function initQuiz() {
+            quizIndex = 0; score = 0; streak = 0;
+            updateStats(); loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            const q = dbQuestions[quizIndex];
+            document.getElementById('quiz-q').innerText = q.q;
+            document.getElementById('quiz-progress').innerText = `${quizIndex + 1}/${dbQuestions.length}`;
+            
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+            
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left p-4 rounded-xl border border-gray-700 bg-gray-800 hover:bg-gray-700 hover:border-gray-500 transition-colors font-medium text-white';
+                btn.innerText = opt;
+                btn.onclick = () => handleAnswer(idx);
+                optionsContainer.appendChild(btn);
+            });
+
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('quiz-next-btn').classList.add('hidden');
+
+            if (isRanked) startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = TIME_LIMIT;
+            const bar = document.getElementById('timer-bar');
+            bar.style.transition = 'none';
+            bar.style.width = '100%';
+            void bar.offsetWidth; // trigger reflow
+            bar.style.transition = `width ${TIME_LIMIT}s linear`;
+            bar.style.width = '0%';
+
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) { clearInterval(timerInterval); handleTimeOut(); }
+            }, 1000);
+        }
+
+        function handleAnswer(selectedIdx) {
+            if (answered) return;
+            answered = true;
+            clearInterval(timerInterval);
+            
+            const bar = document.getElementById('timer-bar');
+            bar.style.width = bar.offsetWidth + 'px';
+            bar.style.transition = 'none';
+
+            const q = dbQuestions[quizIndex];
+            const isCorrect = selectedIdx === q.correct;
+            const buttons = document.getElementById('quiz-options').children;
+
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (i === q.correct) {
+                    buttons[i].classList.replace('bg-gray-800', 'bg-green-900/50');
+                    buttons[i].classList.replace('border-gray-700', 'border-green-500');
+                    buttons[i].classList.add('text-green-300');
+                } else if (i === selectedIdx && !isCorrect) {
+                    buttons[i].classList.replace('bg-gray-800', 'bg-red-900/50');
+                    buttons[i].classList.replace('border-gray-700', 'border-red-500');
+                    buttons[i].classList.add('text-red-300');
+                } else {
+                    buttons[i].classList.add('opacity-50');
+                }
+            }
+
+            if (isCorrect) {
+                let pts = isRanked ? (100 + (timeLeft * 10) + (streak * 20)) : 100;
+                score += pts;
+                if(isRanked) streak++;
+                showFeedback(true, `+${pts} Points! ${q.explanation}`);
+            } else {
+                streak = 0;
+                showFeedback(false, `Falsch Bro. ${q.explanation}`);
+            }
+
+            updateStats();
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function handleTimeOut() {
+            if(answered) return;
+            answered = true; streak = 0;
+            
+            const q = dbQuestions[quizIndex];
+            const buttons = document.getElementById('quiz-options').children;
+            
+            for (let i = 0; i < buttons.length; i++) {
+                buttons[i].disabled = true;
+                if (i === q.correct) {
+                    buttons[i].classList.replace('bg-gray-800', 'bg-green-900/50');
+                    buttons[i].classList.replace('border-gray-700', 'border-green-500');
+                }
+                buttons[i].classList.add('opacity-50');
+            }
+
+            updateStats();
+            showFeedback(false, `Time's up! Zu langsam. ${q.explanation}`);
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+        }
+
+        function showFeedback(correct, text) {
+            const fb = document.getElementById('quiz-feedback');
+            fb.classList.remove('hidden', 'bg-green-900/30', 'border-green-500', 'text-green-300', 'bg-red-900/30', 'border-red-500', 'text-red-300');
+            if(correct) fb.classList.add('bg-green-900/30', 'border-green-500', 'text-green-300');
+            else fb.classList.add('bg-red-900/30', 'border-red-500', 'text-red-300');
+            fb.innerText = text;
+        }
+
+        function updateStats() {
+            document.getElementById('quiz-score-display').innerText = `Score: ${score}`;
+            document.getElementById('streak-count').innerText = streak;
+        }
+
+        window.nextQuizQuestion = () => {
+            quizIndex++;
+            if (quizIndex < dbQuestions.length) loadQuestion();
+            else endQuiz();
+        };
+
+        async function endQuiz() {
+            let eloGain = isRanked ? Math.floor(score / 50) : Math.floor(score / 150);
+            await updateEloInCloud(playerElo + eloGain);
+            
+            document.getElementById('end-score').innerText = score;
+            document.getElementById('end-elo').innerText = `+${eloGain} ↗`;
+            
+            const title = document.getElementById('end-title');
+            const sub = document.getElementById('end-subtitle');
+            const emoji = document.getElementById('end-emoji');
+
+            if(score > 1500) {
+                title.innerText = "GG WP! 👑"; sub.innerText = "Absoluter God Gamer. Der Test hat keine Chance."; emoji.innerText = "🔥";
+            } else if (score > 800) {
+                title.innerText = "Not bad, Bro"; sub.innerText = "Solider Run, aber da geht noch mehr."; emoji.innerText = "👍";
+            } else {
+                title.innerText = "F im Chat"; sub.innerText = "Das war ein harter Throw. Zeit für den Grind Mode."; emoji.innerText = "💀";
+            }
+            
+            window.switchScreen('end');
+        }
+
+        // Keyboard Shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (currentScreen === 'flashcards') {
+                if (e.key === 'ArrowRight') window.nextFC();
+                if (e.key === 'ArrowLeft') window.prevFC();
+                if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); window.flipCard(); }
+            }
+            if (currentScreen === 'quiz' && !answered) {
+                const key = parseInt(e.key);
+                if (key >= 1 && key <= 4) {
+                    const btn = document.getElementById('quiz-options').children[key-1];
+                    if(btn) btn.click();
+                }
+            }
+            if (currentScreen === 'quiz' && answered && e.key === 'Enter') {
+                window.nextQuizQuestion();
+            }
+        });
+    </script>
+</body>
+</html>
