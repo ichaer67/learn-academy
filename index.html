@@ -116,19 +116,12 @@
         </div>
     </nav>
 
-    <!-- SCREEN: LOADING / INIT -->
-    <div id="screen-loading" class="screen active w-full max-w-md items-center justify-center flex-1 text-center">
-        <div class="w-16 h-16 border-4 border-fuchsia-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <h2 class="text-2xl font-bold">Booting Cloud Servers...</h2>
-        <p class="text-gray-400 text-sm">Verbinde mit Firebase 🚀</p>
-    </div>
-
     <!-- SCREEN: AUTH (Create Account) -->
     <div id="screen-auth" class="screen w-full max-w-md items-center justify-center flex-1 text-center">
         <h1 class="text-4xl font-extrabold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
             Create Player Profile
         </h1>
-        <p class="text-gray-400 mb-8">Wähle deinen Gamer Tag, Bro. Dein Progress wird in der Cloud gespeichert.</p>
+        <p class="text-gray-400 mb-8">Wähle deinen Gamer Tag, Bro. Dein Progress wird lokal in diesem Browser gespeichert.</p>
         
         <div class="bg-gray-900 border border-gray-800 p-6 rounded-2xl w-full shadow-2xl">
             <input type="text" id="gamertag-input" maxlength="12" placeholder="xX_Pro_Xx" class="w-full bg-gray-950 border border-gray-700 rounded-xl p-4 text-white text-center text-xl font-bold mb-4 focus:outline-none focus:border-cyan-500 transition-colors">
@@ -174,8 +167,8 @@
 
             <!-- Leaderboard -->
             <button onclick="window.switchScreen('lobby')" class="bg-gray-900 border border-gray-800 p-6 rounded-2xl hover:border-green-500 transition-all text-left md:col-span-2">
-                <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">🌍 Global Leaderboard</h2>
-                <p class="text-gray-400 text-sm">Miss dich mit deinen Bros. Wer hat die höchste Elo?</p>
+                <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">🌍 Leaderboard</h2>
+                <p class="text-gray-400 text-sm">Miss dich mit deinen vorherigen Runs auf diesem Gerät.</p>
             </button>
         </div>
     </div>
@@ -232,15 +225,14 @@
     </div>
 
     <!-- SCREEN: LEADERBOARD -->
-    <div id="screen-lobby" class="screen w-full max-w-md items-center justify-center flex-1 text-center">
-        <button onclick="window.switchScreen('menu')" class="absolute top-8 left-8 text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold">← Back</button>
+    <div id="screen-lobby" class="screen w-full max-w-md items-center justify-center flex-1 text-center relative">
+        <button onclick="window.switchScreen('menu')" class="absolute top-0 left-0 text-gray-400 hover:text-white flex items-center gap-2 text-sm font-semibold">← Back</button>
         
-        <h2 class="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Global Ranking</h2>
-        <p class="text-gray-400 mb-6">Live Cloud Sync aktiv 🟢</p>
+        <h2 class="text-3xl font-bold mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Ranking</h2>
+        <p class="text-gray-400 mb-6">Lokal gespeichert auf diesem Gerät 🟢</p>
         
         <div class="bg-gray-900 border border-gray-700 rounded-xl w-full mb-6 overflow-hidden max-h-80 overflow-y-auto" id="leaderboard-container">
-            <!-- Leaderboard Items injected via JS -->
-            <div class="p-4 text-gray-500 text-sm">Lade Live-Daten...</div>
+            <div class="p-4 text-gray-500 text-sm">Lade Daten...</div>
         </div>
     </div>
 
@@ -248,7 +240,7 @@
     <div id="screen-end" class="screen w-full max-w-md items-center justify-center flex-1 text-center">
         <div id="end-emoji" class="text-6xl mb-4">🏆</div>
         <h2 class="text-4xl font-extrabold mb-2" id="end-title">GG WP!</h2>
-        <p class="text-gray-400 mb-8" id="end-subtitle">Score in die Cloud gepusht.</p>
+        <p class="text-gray-400 mb-8" id="end-subtitle">Score gespeichert.</p>
         
         <div class="bg-gray-900 rounded-2xl p-6 w-full mb-8 border border-gray-800 flex justify-around">
             <div>
@@ -266,139 +258,79 @@
         </button>
     </div>
 
-    <!-- SCRIPT (Type Module for Firebase + Game Logic) -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    <!-- SCRIPT (local storage based, no external backend required) -->
+    <script>
+        // --- LOCAL "CLOUD" (localStorage) SETUP ---
+        const STORAGE_KEY = 'acl_academy_profile';
+        const LEADERBOARD_KEY = 'acl_academy_leaderboard';
 
-        // --- FIREBASE SETUP ---
-        // Env variables provided by the Canvas Environment
-        let firebaseConfig = {};
-        if (typeof __firebase_config !== 'undefined') {
-            try { firebaseConfig = JSON.parse(__firebase_config); } catch (e) { console.error("Firebase config parse error", e); }
-        }
-        
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'acl-academy-1337';
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        
-        let currentUser = null;
         let gamerTag = "";
         let playerElo = 1200;
 
-        // Initialize Authentication (CRITICAL RULE 3)
-        async function initAuth() {
+        function loadUserProfile() {
             try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                // Fallback for local testing without valid config
-                setTimeout(() => window.switchScreen('menu'), 1000);
-            }
-        }
-
-        // Listen to Auth State
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                currentUser = user;
-                await loadUserProfile();
-                listenToLeaderboard();
-            }
-        });
-
-        // Load Private Profile (CRITICAL RULE 1)
-        async function loadUserProfile() {
-            if (!currentUser) return;
-            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
-            try {
-                const docSnap = await getDoc(profileRef);
-                if (docSnap.exists()) {
-                    gamerTag = docSnap.data().gamerTag || "Bro";
-                    playerElo = docSnap.data().elo || 1200;
-                    
-                    // Update UI
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (raw) {
+                    const data = JSON.parse(raw);
+                    gamerTag = data.gamerTag || "Bro";
+                    playerElo = data.elo || 1200;
                     document.getElementById('nav-player').innerText = gamerTag;
                     document.getElementById('nav-elo').innerText = playerElo;
                     window.switchScreen('menu');
                 } else {
-                    // No profile yet -> Go to Auth Screen
                     window.switchScreen('auth');
                 }
             } catch (e) {
-                console.error("Firestore Read Error:", e);
+                console.error("Storage Read Error:", e);
                 window.switchScreen('auth');
             }
+            renderLeaderboard();
         }
 
-        // Create Account / Save Profile Function
-        window.createAccount = async () => {
+        window.createAccount = () => {
             const input = document.getElementById('gamertag-input').value.trim();
             if (!input) { alert("Gib einen Tag ein, Bro!"); return; }
-            if (!currentUser) { alert("Warte auf Cloud Connection..."); return; }
 
             gamerTag = input;
             document.getElementById('nav-player').innerText = gamerTag;
-            
-            // Save to Private Space
-            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
-            await setDoc(profileRef, { gamerTag: gamerTag, elo: playerElo }, { merge: true });
-            
-            // Save to Public Leaderboard Space (CRITICAL RULE 1)
-            const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
-            await setDoc(publicRef, { gamerTag: gamerTag, elo: playerElo }, { merge: true });
+
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ gamerTag, elo: playerElo }));
+            upsertLeaderboardEntry(gamerTag, playerElo);
 
             window.switchScreen('menu');
         };
 
-        // Sync Elo to Cloud
-        async function updateEloInCloud(newElo) {
-            if (!currentUser) return;
+        function updateEloLocally(newElo) {
             playerElo = newElo;
             document.getElementById('nav-elo').innerText = playerElo;
-            
-            // Update Private
-            const profileRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'profile', 'data');
-            await setDoc(profileRef, { elo: playerElo }, { merge: true });
-            
-            // Update Public Leaderboard
-            const publicRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', currentUser.uid);
-            await setDoc(publicRef, { elo: playerElo }, { merge: true });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ gamerTag, elo: playerElo }));
+            upsertLeaderboardEntry(gamerTag, playerElo);
         }
 
-        // Listen to Live Leaderboard (CRITICAL RULE 2: No complex queries, sort in JS)
-        function listenToLeaderboard() {
-            if (!currentUser) return;
-            const lbCol = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
-            onSnapshot(lbCol, (snapshot) => {
-                let players = [];
-                snapshot.forEach(doc => players.push(doc.data()));
-                
-                // Sort descending in Memory
-                players.sort((a, b) => b.elo - a.elo); 
-                
-                renderLeaderboard(players);
-            }, (error) => {
-                console.error("Leaderboard Error:", error);
-            });
+        function upsertLeaderboardEntry(tag, elo) {
+            let board = [];
+            try { board = JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || []; } catch (e) { board = []; }
+            const existing = board.find(p => p.gamerTag === tag);
+            if (existing) existing.elo = elo;
+            else board.push({ gamerTag: tag, elo });
+            localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(board));
+            renderLeaderboard();
         }
 
-        function renderLeaderboard(players) {
+        function renderLeaderboard() {
+            let board = [];
+            try { board = JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || []; } catch (e) { board = []; }
+            board.sort((a, b) => b.elo - a.elo);
+
             const container = document.getElementById('leaderboard-container');
             container.innerHTML = '';
-            
-            if (players.length === 0) {
-                container.innerHTML = '<div class="p-4 text-gray-500 text-sm">Noch niemand in der Academy...</div>';
+
+            if (board.length === 0) {
+                container.innerHTML = '<div class="p-4 text-gray-500 text-sm">Noch keine Runs gespeichert...</div>';
                 return;
             }
 
-            players.forEach((p, index) => {
+            board.forEach((p, index) => {
                 let medal = "";
                 if (index === 0) medal = "🥇";
                 else if (index === 1) medal = "🥈";
@@ -419,8 +351,8 @@
             });
         }
 
-        // Start booting Auth Flow
-        initAuth();
+        // Boot
+        loadUserProfile();
 
         // --- GAME DATA & LOGIC ---
         const dbQuestions = [
@@ -486,7 +418,7 @@
             }
         ];
 
-        let currentScreen = 'loading';
+        let currentScreen = 'auth';
         let fcIndex = 0;
         let isRanked = false;
         let quizIndex = 0;
@@ -503,6 +435,7 @@
             currentScreen = screenId;
             clearInterval(timerInterval);
             if (screenId === 'flashcards') updateFC();
+            if (screenId === 'lobby') renderLeaderboard();
         };
 
         // --- FLASHCARD LOGIC ---
@@ -665,9 +598,9 @@
             else endQuiz();
         };
 
-        async function endQuiz() {
+        function endQuiz() {
             let eloGain = isRanked ? Math.floor(score / 50) : Math.floor(score / 150);
-            await updateEloInCloud(playerElo + eloGain);
+            updateEloLocally(playerElo + eloGain);
             
             document.getElementById('end-score').innerText = score;
             document.getElementById('end-elo').innerText = `+${eloGain} ↗`;
